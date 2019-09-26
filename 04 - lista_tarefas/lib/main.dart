@@ -16,9 +16,31 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
 
+  //controler para gerenciar o input de entrada de tarefas
   final _toDoController = TextEditingController();
-
+  //inicia a lista de tarefas
   List _toDoList = [];
+
+  //armazena ultima remoção, permitindo desfazer...
+  Map<String, dynamic> _lastRemoved;
+  int _lastRemovedPos;
+
+  //método "onload" para iniciar a aplicação
+  @override
+  void initState(){
+    super.initState();
+
+    //chama o _readData(), que é uma future (similar ao promise) e processa o resultado
+    this._readData().then((data){
+      //utiliza o setState() já que vai atualizar a tela 
+      setState(() {
+        //atualiza a lista, convertendo o json para objeto
+        this._toDoList = json.decode(data);  
+      });      
+    });
+  }
+
+
   void _addToDo(){
     
     setState(() {
@@ -29,6 +51,7 @@ class _HomeState extends State<Home> {
       newToDo["ok"] = false;
 
       this._toDoList.add(newToDo);      
+      this._saveData();
     });
      
   }
@@ -69,20 +92,7 @@ class _HomeState extends State<Home> {
             child: ListView.builder(
               padding: EdgeInsets.only(top: 10.0),
               itemCount: _toDoList.length,
-              itemBuilder: (context, index){
-                return CheckboxListTile(
-                  title: Text(_toDoList[index]["title"]),    
-                  value: _toDoList[index]["ok"],
-                  secondary: CircleAvatar(
-                    child: Icon(_toDoList[index]["ok"] ? Icons.check : Icons.error),
-                  ),
-                  onChanged: (newValue){
-                    setState(() {
-                      _toDoList[index]["ok"] = newValue;  
-                    });
-                  },
-                );   
-              },
+              itemBuilder: buildItem,
             ),
           )
         ],
@@ -91,9 +101,65 @@ class _HomeState extends State<Home> {
     );
   }
 
+  Widget buildItem(BuildContext context, int index){
+    return Dismissible(
+      //exige uma chave obrigatória. Professor resolveu utilizar a hora atual em ms
+      key: Key(DateTime.now().millisecondsSinceEpoch.toString()), 
+      background: Container(
+        color: Colors.red,
+        child: Align(
+          alignment: Alignment(-0.9, 0.0),
+          child: Icon(Icons.delete, color: Colors.white),
+        ),
+      ),
+      direction: DismissDirection.startToEnd,
+      child: CheckboxListTile(
+      title: Text(_toDoList[index]["title"]),    
+      value: _toDoList[index]["ok"],
+      secondary: CircleAvatar(
+          child: Icon(_toDoList[index]["ok"] ? Icons.check : Icons.error),
+        ),
+        onChanged: (newValue){
+          setState(() {
+            this._toDoList[index]["ok"] = newValue;  
+            this._saveData();
+          });
+        },
+      ),
+      onDismissed: (direction){
+        setState(() {
+          this._lastRemoved = Map.from(this._toDoList[index]);
+          this._lastRemovedPos = index;
+          this._toDoList.removeAt(index);
+
+          this._saveData();          
+
+          final snack = SnackBar(
+            content: Text("Tarefa \"${this._lastRemoved['title']}\" removida"),    
+            duration: Duration(seconds: 2),
+            action: SnackBarAction(
+              label: 'Desfazer',
+              onPressed: (){
+                setState(() {
+                  this._toDoList.insert(this._lastRemovedPos, this._lastRemoved);
+                  this._saveData();  
+                });                
+              },
+            ),
+          );
+
+          Scaffold.of(context).showSnackBar(snack);
+          
+        });
+      },
+    );
+  }
+
+
   Future<File> _getFile() async{
-  final directory = await getApplicationDocumentsDirectory();
-  return File("${directory.path}/data.json");
+    final directory = await getApplicationDocumentsDirectory();
+    //File("${directory.path}/data.json").delete();
+    return File("${directory.path}/data.json");
   }
 
   Future<File> _saveData() async {
