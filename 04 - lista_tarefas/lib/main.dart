@@ -56,6 +56,25 @@ class _HomeState extends State<Home> {
      
   }
 
+  Future<Null> _refresh() async{
+    //efeito como se estivesse processando por 1 segundo
+    await Future.delayed(Duration(seconds: 1));
+
+    setState(() {
+      this._toDoList.sort((a,b){
+        if (a["ok"] && !b["ok"]) return 1;
+        else if (!a["ok"] && b["ok"]) return -1;
+        else return 0;  
+      });
+
+      this._saveData();  
+    });
+
+    return null;
+    
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -89,10 +108,13 @@ class _HomeState extends State<Home> {
             ),
           ),
           Expanded(
-            child: ListView.builder(
-              padding: EdgeInsets.only(top: 10.0),
-              itemCount: _toDoList.length,
-              itemBuilder: buildItem,
+            child: RefreshIndicator(
+              onRefresh: this._refresh,
+              child: ListView.builder(
+                padding: EdgeInsets.only(top: 10.0),
+                itemCount: _toDoList.length,
+                itemBuilder: buildItem,
+              )
             ),
           )
         ],
@@ -148,6 +170,7 @@ class _HomeState extends State<Home> {
             ),
           );
 
+          Scaffold.of(context).removeCurrentSnackBar();
           Scaffold.of(context).showSnackBar(snack);
           
         });
