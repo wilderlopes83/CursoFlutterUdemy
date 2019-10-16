@@ -95,7 +95,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   int _getCount(List data){
-    if (_search == null){
+    if (_search == null || _search.isEmpty){
       return data.length;
     }
     else{
@@ -113,7 +113,8 @@ class _HomePageState extends State<HomePage> {
       ) ,
       itemCount: _getCount(snapshot.data["data"]),
       itemBuilder: (context, index){
-        if (_search == null || index < snapshot.data["data"].length){
+       
+        if (_search == null || _search.isEmpty || index < snapshot.data["data"].length){
           return GestureDetector(
             child: FadeInImage.memoryNetwork(
               placeholder: kTransparentImage,
