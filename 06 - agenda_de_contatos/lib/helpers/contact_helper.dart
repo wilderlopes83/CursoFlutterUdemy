@@ -11,7 +11,6 @@ final String imgColumn = "imgColumn";
 class ContactHelper{
 
   //pattern singleton para garantir somente uma instância 
-
   static final ContactHelper _instance = ContactHelper.internal();
   factory ContactHelper() => _instance;
   ContactHelper.internal();
@@ -28,9 +27,68 @@ class ContactHelper{
     }
   }
 
+  Future<Contact> saveContact(Contact contact) async{
+    Database dbContact = await this.db;
+    contact.id = await dbContact.insert(contactTable, contact.toMap());
+    return contact;
+  }
+
+  Future<Contact> getContact(int id) async{
+    Database dbContact = await this.db;
+    List<Map> maps = await dbContact.query(contactTable,
+      columns: [idColumn, nameColumn, emailColumn, phoneColumn, imgColumn],
+      where: "$idColumn = ?",
+      whereArgs: [id]
+    );
+
+    if (maps.length > 0){
+      return Contact.fromMap(maps.first);
+    } else{
+      return null;
+    }
+  }
+
+  Future<int> deleteContact(int id) async {
+    Database dbContact = await this.db;
+    return await dbContact.delete(contactTable,
+      where: "$idColumn = ? ",
+      whereArgs: [id]
+    );    
+  }
+
+  Future<int> updateContact(Contact contact) async{
+    Database dbContact = await this.db;
+    return await dbContact.update(contactTable,
+      contact.toMap(),
+      where: "$idColumn = ?",
+      whereArgs: [contact.id]
+    );
+  }
+
+  Future<List> getAllContacts() async{
+    Database dbContact = await this.db;
+    List listMap = await dbContact.rawQuery(" SELECT * FROM $contactTable ");
+    List<Contact> listContact = List();
+    for(Map m in listMap){
+      listContact.add(Contact.fromMap(m));
+    }
+
+    return listContact;
+  }
+
+  Future<int> getNumber() async{
+    Database dbContact = await this.db;
+    return Sqflite.firstIntValue(await dbContact.rawQuery("SELECT COUNT(*) FROM $contactTable "));
+  }
+
+  Future close() async{
+    Database dbContact = await this.db;
+    dbContact.close();
+  }
+
   Future<Database> initDb() async {
     final databasesPath = await getDatabasesPath();
-    final path = join(databasesPath, "contacts.db");
+    final path = join(databasesPath, "contactsnew.db");
 
     return await openDatabase(path, version: 1, onCreate: (Database db, int newerVersion) async{
       await db.execute(
@@ -51,6 +109,9 @@ class Contact{
   String email;
   String phone;
   String img;
+
+  //construtor vazio
+  Contact();
 
   Contact.fromMap(Map map){
     id = map[idColumn];
