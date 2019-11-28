@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 void main() {
 
-  Firestore.instance.collection("teste").document("teste").setData({"teste":"teste"});
+  Firestore.instance.collection("teste").document("teste_2").setData({"teste3":"teste3"});
 
   runApp(MyApp());
 
